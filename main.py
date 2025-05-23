@@ -145,18 +145,29 @@ def get_latency_dataframe(old_file_path: str, new_file_path: str):
     old_latency, old_exchange_time, old_received_time = get_old_latency(old_file_path)
     new_latency, new_exchange_time, new_received_time = get_new_latency(new_file_path)
 
-    latency_pd = pd.DataFrame({
+    latency_df = pd.DataFrame({
         "old_exchange_time": old_exchange_time,
         "old_received_time": old_received_time,
-        "old_latency": old_latency,
+        "old_latency_μs": old_latency,
         "new_exchange_time": new_exchange_time,
         "new_received_time": new_received_time,
-        "new_latency": new_latency
+        "new_latency_μs": new_latency
     })
 
-    latency_pd["latency_diff"] = latency_pd["old_latency"] - latency_pd["new_latency"]
+    latency_df["latency_diff"] = latency_df["old_latency_μs"] - latency_df["new_latency_μs"]
+    latency_df.index = pd.RangeIndex(start=1, stop=len(latency_df) + 1, name="response_idx")
 
-    return latency_pd
+    latency_df["old_exchange_time"] = latency_df["old_exchange_time"].dt.time
+    latency_df["old_received_time"] = latency_df["old_received_time"].dt.time
+    latency_df["new_exchange_time"] = latency_df["new_exchange_time"].dt.time
+    latency_df["new_received_time"] = latency_df["new_received_time"].dt.time
+
+    return latency_df
+
+def get_latency_summary(latency_df: pd.DataFrame):
+    summary_df = latency_df[["old_latency_μs", "new_latency_μs"]].agg(["mean", "std"]).round(2)
+    summary_df.index = ["Average", "Std Dev"]
+    return summary_df
 
 def get_bids_and_asks(file_path: str, is_new: bool):
     bids: list = []
@@ -211,24 +222,13 @@ def main():
     old_api_merged_df = merge_dataframe(old_api_bids_df, old_api_asks_df)
     new_api_merged_df = merge_dataframe(new_api_bids_df, new_api_asks_df)
     
-    latency_dataframe = get_latency_dataframe("old_api", "new_api")
     old_level_count, new_level_count = get_level_count_dataframe(old_api_merged_df, new_api_merged_df)
+
+    latency_df = get_latency_dataframe("old_api", "new_api")
+    latency_summary = get_latency_summary(latency_df)
 
     if not os.path.exists("result"):
         os.makedirs("result")
-
-    print("============= Latency Metrics =============\n")
-    print(latency_dataframe.head(50))
-    latency_dataframe.to_csv("result/latency.csv")
-
-    # Not necessarily correct since date time is now miliseconds instead (loss of precision)
-    print("Old Api Latency:")
-    print(f"  Average:\t{latency_dataframe["old_latency"].mean():.2f}")
-    print(f"  Deviation:\t{latency_dataframe["old_latency"].std():.2f}\n")
-
-    print("New Api Latency:")
-    print(f"  Average:\t{latency_dataframe["new_latency"].mean():.2f}")
-    print(f"  Deviation:\t{latency_dataframe["new_latency"].std():.2f}\n")
 
     print("============= Old API Results =============\n")
     print("Asks:")
@@ -266,6 +266,16 @@ def main():
     print(new_level_count.to_string(index=False))
     print("\n")
     new_level_count.to_csv("result/new_level_count.csv", index=False)
+
+    print("============= Latency Metrics =============\n")
+    print(latency_df.to_string())
+    latency_df.to_csv("result/latency.csv")
+    print("\n")
+
+    # Not necessarily correct since date time is now miliseconds instead (loss of precision)
+    print(latency_summary.to_string())
+    latency_summary.to_csv("result/latency_summary.csv")
+
 
 if __name__ == "__main__":
     main()
