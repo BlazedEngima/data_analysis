@@ -45,7 +45,7 @@ My thoughts:
 '''
 
 # Parse into separate bids and asks dataframes
-def parse_old_api(file_path: str, bids: list, asks: list):
+def parse_old_api_levels(file_path: str, bids: list, asks: list):
     with open(file_path, 'r') as f:
         for num, line in enumerate(f):
             data = json.loads(line)
@@ -72,7 +72,7 @@ def parse_old_api(file_path: str, bids: list, asks: list):
                     })
 
 # Parse into separate bids and asks dataframes
-def parse_new_api(file_path: str, bids: list, asks: list):
+def parse_new_api_levels(file_path: str, bids: list, asks: list):
     with open(file_path, 'r') as f:
         for num, line in enumerate(f):
             data = json.loads(line)
@@ -173,9 +173,9 @@ def get_bids_and_asks(file_path: str, is_new: bool):
     bids: list = []
     asks: list = []
     if (not is_new):
-        parse_old_api("old_api", bids, asks)
+        parse_old_api_levels("old_api", bids, asks)
     else:
-        parse_new_api("new_api", bids, asks)
+        parse_new_api_levels("new_api", bids, asks)
 
     bids_df = pd.DataFrame(bids)
     asks_df = pd.DataFrame(asks)
@@ -202,6 +202,35 @@ def get_bids_and_asks(file_path: str, is_new: bool):
 
     return bids_df, asks_df
 
+def get_old_aggregate(old_df_bids: pd.DataFrame, old_df_asks: pd.DataFrame):
+    bids_agg = old_df_bids.groupby("response_idx")["quantity"].sum().round(4).rename("total_bids")
+    asks_agg = old_df_asks.groupby("response_idx")["quantity"].sum().round(4).rename("total_asks")
+
+    agg_df = pd.concat([bids_agg, asks_agg], axis=1).fillna(0)
+    agg_df = agg_df.sort_values("response_idx").reset_index()
+
+    return agg_df
+
+def get_new_aggregate(file_path: str):
+    records: list = []
+    with open(file_path, 'r') as f:
+        for num, line in enumerate(f):
+            data = json.loads(line)
+            tbs = data.get("tbs")
+            tas = data.get("tas")
+
+            records.append({
+                "response_idx": num + 1,
+                "total_bids": tbs,
+                "total_asks": tas,
+            })
+
+    agg_df = pd.DataFrame(records)
+    agg_df["total_bids"] = agg_df["total_bids"].astype("float32")
+    agg_df["total_asks"] = agg_df["total_asks"].astype("float32")
+
+    return agg_df
+
 def level_count(df: pd.DataFrame):
     count_df = df.groupby("response_idx").size().reset_index(name="num_levels")
 
@@ -222,6 +251,9 @@ def main():
     old_api_merged_df = merge_dataframe(old_api_bids_df, old_api_asks_df)
     new_api_merged_df = merge_dataframe(new_api_bids_df, new_api_asks_df)
     
+    old_agg_df = get_old_aggregate(old_api_bids_df, old_api_asks_df)
+    new_agg_df = get_new_aggregate("new_api")
+
     old_level_count, new_level_count = get_level_count_dataframe(old_api_merged_df, new_api_merged_df)
 
     latency_df = get_latency_dataframe("old_api", "new_api")
@@ -257,15 +289,25 @@ def main():
     new_api_merged_df.to_csv("result/new_api_merged.csv", index=False)
 
     print("============= API Count Results =============")
-    print("Old API:")
+    print("Old API Levels:")
     print(old_level_count.to_string(index=False))
     print("\n")
     old_level_count.to_csv("result/old_level_count.csv", index=False)
 
-    print("New API:")
+    print("Old API Aggregate:")
+    print(old_agg_df.to_string(index=False))
+    print("\n")
+    old_agg_df.to_csv("result/old_api_agg.csv", index=False)
+
+    print("New API Levels:")
     print(new_level_count.to_string(index=False))
     print("\n")
     new_level_count.to_csv("result/new_level_count.csv", index=False)
+
+    print("New API Aggregate:")
+    print(new_agg_df.to_string(index=False))
+    print("\n")
+    new_agg_df.to_csv("result/new_api_agg.csv", index=False)
 
     print("============= Latency Metrics =============\n")
     print(latency_df.to_string())
