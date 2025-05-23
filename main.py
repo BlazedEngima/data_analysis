@@ -7,7 +7,8 @@ recv_time - timestamp we got data on our server
 What is the difference between two APIs?
     - Formatting of the returned JSONs are different
     - Server time response (not recv_time) in the new api is in ms instead of μs like the old api
-    - The old API has varying price level updates for some reason vs the new one
+    - The old API has varying price level updates for some reason vs the new one which has a fixed 15
+    - The new API has aggregate data (tas, tbs) while the old API has total number of orders (assumption, see Questions)
 
 Which API has better latency and why?
     - New API has better latency on average but it might not be accurate as the server time response decreased in precision compared to the old api
@@ -35,7 +36,7 @@ Questions:
     - If measured at the same time, how come the old api has lower amount of updates?
     - Why is an orderbook depth API not returning a fixed level amount?
     - Tied to the previous question, it looks like some orderbook updates are missing?
-    - What is total in the old api return? Is it total number of orders? Why are some of them 0?
+    - What is "total" in the old api return? I assume its total number of orders. Why are some of them 0?
 
 My thoughts:
     - I suggest using the newer API if it's compatible with existing code since

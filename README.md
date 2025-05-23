@@ -7,7 +7,8 @@ We've gathered same data using both API versions (instrument ABC_USD) on a singl
 What is the difference between two APIs?
  - Formatting of the returned JSONs are different
  - Server time response (not recv_time) in the new api is in ms instead of μs like the old api
- - The old API has varying price level updates for some reason vs the new one
+ - The old API has varying price level updates for some reason vs the new one which has a fixed 15
+ - The new API has aggregate data (tas, tbs) while the old API has total number of orders (assumption, see Questions)
 
 Which API has better latency and why?
  - New API has better latency on average but it might not be accurate as the server time response decreased in precision compared to the old api
