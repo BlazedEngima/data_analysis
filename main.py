@@ -165,8 +165,8 @@ def get_latency_dataframe(old_file_path: str, new_file_path: str):
     return latency_df
 
 def get_latency_summary(latency_df: pd.DataFrame):
-    summary_df = latency_df[["old_latency_μs", "new_latency_μs"]].agg(["mean", "std"]).round(2)
-    summary_df.index = ["Average", "Std Dev"]
+    summary_df = latency_df[["old_latency_μs", "new_latency_μs"]].agg(["mean", "std", "median", "sum"]).round(2)
+    summary_df.index = ["Average", "Std Dev", "Median", "Sum"]
     return summary_df
 
 def get_bids_and_asks(file_path: str, is_new: bool):
