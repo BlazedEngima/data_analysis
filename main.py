@@ -257,6 +257,8 @@ def main():
     old_level_count, new_level_count = get_level_count_dataframe(old_api_merged_df, new_api_merged_df)
 
     latency_df = get_latency_dataframe("old_api", "new_api")
+    exchange_time_df = latency_df[["old_exchange_time", "new_exchange_time"]]
+    recv_time_df = latency_df[["old_received_time", "new_received_time"]]
     latency_summary = get_latency_summary(latency_df)
 
     if not os.path.exists("result"):
@@ -310,11 +312,24 @@ def main():
     new_agg_df.to_csv("result/new_api_agg.csv", index=False)
 
     print("============= Latency Metrics =============\n")
+    print("Latencies:")
     print(latency_df.to_string())
     latency_df.to_csv("result/latency.csv")
     print("\n")
 
+    # Old API has consistenly earlier exchange times and received times
+    print("Exchange time:")
+    print(exchange_time_df.to_string())
+    exchange_time_df.to_csv("result/exchange_time.csv")
+    print("\n")
+
+    print("Received time:")
+    print(recv_time_df.to_string())
+    recv_time_df.to_csv("result/received_time.csv")
+    print("\n")
+
     # Not necessarily correct since date time is now miliseconds instead (loss of precision)
+    print("Latency Summary:")
     print(latency_summary.to_string())
     latency_summary.to_csv("result/latency_summary.csv")
 
